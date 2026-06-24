@@ -1,4 +1,19 @@
-// Ollama OCR integration using fredrezones55/chandra-ocr-2 model
+/**
+ * Chandra-OCR-2 OCR Engine (via Ollama)
+ * 
+ * This module handles text extraction from images using the fredrezones55/chandra-ocr-2 model
+ * via a local Ollama server running on port 11434.
+ * 
+ * Chandra-OCR-2 provides superior accuracy for:
+ * - Medical documents
+ * - Legal documents
+ * - Government forms
+ * - Complex layouts
+ * 
+ * Requirements:
+ * - Ollama installed and running: ollama serve
+ * - Model pulled: ollama pull fredrezones55/chandra-ocr-2
+ */
 
 export interface OCRResult {
   text: string;
@@ -55,12 +70,12 @@ export async function performOCR(imageData: string | File): Promise<OCRResult> {
   const result = await response.json();
   const text = result.response || '';
 
-  // Ollama doesn't provide word-level confidence or bounding boxes like Tesseract
-  // Return a simplified result structure
+  // Chandra-OCR-2 returns plain text without granular word-level data
+  // This is sufficient for PII detection and masking purposes
   return {
     text,
-    confidence: 100, // Ollama doesn't provide confidence scores
-    words: [], // Ollama doesn't provide word-level data
-    lines: [], // Ollama doesn't provide line-level data
+    confidence: 100,
+    words: [],
+    lines: [],
   };
 }

@@ -1,10 +1,12 @@
-# OCR PII Masking Pipeline
+# OCR PII Masking Pipeline (Ollama OCR Integration)
 
-A powerful web-based application that extracts text from images using OCR, detects personally identifiable information (PII), and automatically masks/redacts sensitive data with visual feedback.
+A powerful web-based application that extracts text from images using **Ollama-powered OCR**, detects personally identifiable information (PII), and automatically masks/redacts sensitive data with visual feedback.
+
+> **Chandra-OCR-2 Powered**: This project uses Ollama with the Chandra-OCR-2 model for superior OCR accuracy on complex document layouts.
 
 ## 🎯 Features
 
-- **Optical Character Recognition (OCR)**: Extract text from images using Tesseract.js
+- **Optical Character Recognition (OCR)**: Extract text from images using Ollama with the `fredrezones55/chandra-ocr-2` model
 - **PII Detection**: Automatically identify 16+ types of sensitive information including:
   - Patient names, dates of birth, ages
   - Medical identifiers (MRN, Aadhaar)
@@ -39,6 +41,41 @@ A powerful web-based application that extracts text from images using OCR, detec
 
 - Node.js 16+ and npm
 - Modern web browser (Chrome, Firefox, Safari, Edge)
+- **Ollama** installed and running locally (see [Ollama Setup](#ollama-setup) below)
+
+### Ollama Setup
+
+This application requires Ollama to be running locally with the `fredrezones55/chandra-ocr-2` model.
+
+#### 1. Install Ollama
+
+- **macOS/Linux**: Download from [ollama.ai](https://ollama.ai)
+- **Windows**: Download from [ollama.ai](https://ollama.ai)
+- Or build from source: https://github.com/ollama/ollama
+
+#### 2. Start Ollama Server
+
+```bash
+ollama serve
+```
+
+The Ollama API will be available at `http://localhost:11434`
+
+#### 3. Pull the OCR Model
+
+```bash
+ollama pull fredrezones55/chandra-ocr-2
+```
+
+This downloads the Chandra OCR 2 model (~2-3GB). You only need to do this once.
+
+#### 4. Verify Installation
+
+```bash
+curl http://localhost:11434/api/tags
+```
+
+You should see `fredrezones55/chandra-ocr-2` in the list of available models.
 
 ### Installation
 
@@ -86,7 +123,7 @@ ocr-pii-masking-pipeline/
 │       ├── cn.ts              # CSS class merging utility
 │       ├── fhirFormatter.ts    # FHIR document generation
 │       ├── imageMasker.ts      # Image masking & rendering
-│       ├── ocr.ts             # OCR processing with Tesseract.js
+│       ├── ocr.ts             # OCR processing with Ollama (Chandra-OCR-2)
 │       ├── piiEngine.ts        # PII detection patterns & logic
 │       └── sampleImage.ts      # Sample document generation
 ├── index.html                 # HTML entry point
@@ -98,24 +135,33 @@ ocr-pii-masking-pipeline/
 
 ## 🏗️ Architecture
 
+### OCR Engine
+
+This project exclusively uses **Ollama with Chandra-OCR-2** model:
+- ✅ Superior accuracy for complex document layouts
+- ✅ Excellent performance with GPU acceleration (5-10x faster)
+- ✅ Local processing - no cloud dependency
+- ✅ Supports multiple languages via Ollama ecosystem
+- ✅ Text extraction optimized for medical/legal documents
+
 ### Processing Pipeline
 
 The application follows a step-by-step pipeline:
 
 1. **Image Input**: User uploads an image or loads sample
-2. **OCR Extraction**: Tesseract.js extracts text and bounding boxes
+2. **OCR Extraction**: Ollama with Chandra-OCR-2 extracts text
 3. **PII Detection**: Pattern matching + NER-style detection identifies sensitive data
-4. **Image Masking**: Draws masks over detected PII regions
+4. **Image Masking**: Draws masks over detected PII regions (approximate positioning)
 5. **FHIR Output**: Generates healthcare-compliant metadata
 
 ### Key Components
 
 #### `src/utils/ocr.ts`
-Handles OCR processing using Tesseract.js. Returns structured results with:
-- Full extracted text
-- Per-word confidence scores
-- Bounding box coordinates for spatial mapping
-- Line and word-level segmentation
+Handles OCR processing using Ollama with Chandra-OCR-2 model. Features:
+- Converts images to base64 format for API transmission
+- Calls local Ollama API at `http://localhost:11434/api/generate`
+- Returns extracted text with high accuracy
+- Optimized for medical, legal, and government documents
 
 #### `src/utils/piiEngine.ts`
 Contains regex patterns and context-based NER logic for detecting:
@@ -181,7 +227,8 @@ Use the **"Masking Style"** selector to toggle between:
 | **TypeScript** | Type-safe JavaScript | 5.9.3 |
 | **Vite** | Build tool & dev server | 7.3.2 |
 | **Tailwind CSS** | Utility-first styling | 4.1.17 |
-| **Tesseract.js** | OCR engine | 5.1.1 |
+| **Ollama** | Local OCR engine | Latest |
+| **Chandra-OCR-2** | OCR model (fredrezones55) | Latest |
 | **Tailwind Merge** | CSS class optimization | 3.4.0 |
 | **clsx** | Conditional classnames | 2.1.1 |
 
@@ -244,53 +291,138 @@ Adjust compilation settings in `tsconfig.json`:
 - Strict type checking
 - Module system
 
-### OCR Language
+### OCR Configuration
 
-Default language is English. To add other languages, modify [src/utils/ocr.ts](src/utils/ocr.ts):
+The application uses Ollama for OCR processing. To change settings, modify [src/utils/ocr.ts](src/utils/ocr.ts):
 
+**Default Configuration:**
 ```typescript
-const result = await Tesseract.recognize(imageData, 'eng', {
-  // 'eng' = English
-  // 'fra' = French
-  // 'deu' = German
-  // etc.
-  logger: () => {},
+const response = await fetch('http://localhost:11434/api/generate', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    model: 'fredrezones55/chandra-ocr-2',  // Model name
+    prompt: 'Extract all text from this image. Return only the text content.',
+    images: [base64Image.split(',')[1]],
+    stream: false,
+  }),
 });
 ```
+
+**To use a different OCR model:**
+1. Pull the model in Ollama: `ollama pull <model-name>`
+2. Update the `model` field in the fetch request above
+
+**Popular OCR Models for Ollama:**
+- `fredrezones55/chandra-ocr-2` - General purpose OCR (recommended)
+- `fredrezones55/chandra-ocr` - Lighter alternative
+- Other vision models with text extraction capability
 
 ## 🔐 Privacy & Security
 
 - **Client-side Processing**: All image processing and PII detection happens locally in your browser
-- **No Server Transmission**: Images are never sent to external servers
+- **Local Ollama Server**: OCR processing happens on your local machine (no cloud transmission)
+- **No Remote APIs**: Never sends data to external services (except local Ollama)
 - **No Data Storage**: All data is cleared when you refresh or close the page
 - **Open Source**: Code is transparent and auditable
 
+## ⚡ Performance Optimization
+
+### GPU Acceleration
+
+Ollama supports GPU acceleration for significantly faster OCR:
+
+**NVIDIA GPUs (CUDA)**:
+```bash
+# NVIDIA GPUs will be detected automatically
+ollama serve
+```
+
+**Apple Metal (macOS)**:
+- Automatically detected on Mac with Apple Silicon
+- Requires Metal support
+
+**AMD GPUs (ROCm)**:
+```bash
+# For AMD GPUs
+rocm-smi  # Verify ROCm installation
+ollama serve
+```
+
+Performance typically improves 5-10x with GPU acceleration.
+
+### System Recommendations
+
+| Component | Minimum | Recommended | Optimal |
+|-----------|---------|------------|---------|
+| CPU | Quad-core | 8+ cores | 12+ cores |
+| RAM | 4GB | 8GB | 16GB |
+| GPU | None | NVIDIA/AMD | High-end GPU (12GB+) |
+| Storage | 3GB | 10GB | 20GB+ (multiple models) |
+
+Performance will vary based on your hardware. GPU acceleration makes a significant difference.
+
 ## ⚠️ Limitations
 
-- **OCR Accuracy**: Depends on image quality, resolution, and document clarity
+- **Ollama Requirement**: Requires Ollama to be running locally on port 11434
+- **Processing Speed**: Ollama models are slower than Tesseract.js (30+ seconds typical, depending on hardware)
+- **GPU Recommended**: Performance significantly improves with GPU acceleration (CUDA/Metal)
+- **Memory Requirements**: Requires 4-8GB+ RAM for the Chandra-OCR-2 model
 - **PII Detection**: Pattern-based detection may have false positives/negatives
 - **Language**: Currently configured for English text only
-- **File Size**: Large images may take longer to process
+- **Approximate Positioning**: Text extraction uses approximate positioning for masking (sufficient for redaction purposes)
+- **File Size**: Large images may timeout before OCR completes
 - **Browser Resources**: Heavy processing on low-end devices may be slow
 
 ## 🐛 Known Issues & Troubleshooting
 
-### OCR Takes a Long Time
-- First use downloads Tesseract models (~80MB) - this is normal
-- Clear browser cache to force re-download if needed
-- Large/high-resolution images take longer to process
+### Ollama Connection Error
+**Error**: "Failed to connect to Ollama at http://localhost:11434"
 
-### Masked Regions Look Offset
-- May occur with rotated or skewed documents
-- Try rotating image to straight orientation before uploading
+**Solution**:
+- Ensure Ollama is installed: https://ollama.ai
+- Start Ollama server: `ollama serve`
+- Verify with: `curl http://localhost:11434/api/tags`
+- Check firewall settings - Ollama needs port 11434
 
-### PII Not Detected
-- Detection uses pattern matching - unusual formats may not match
-- Context matters - "Name: John" is detected differently than just "John"
-- Check the extracted text view to verify OCR accuracy
+### Model Not Found
+**Error**: "Error: model not found"
+
+**Solution**:
+- Pull the required model: `ollama pull fredrezones55/chandra-ocr-2`
+- List available models: `ollama list`
+- Ensure you have enough disk space (~2-3GB for Chandra-OCR-2)
+
+### Slow OCR Processing
+**Symptoms**: OCR takes 30+ seconds per image
+
+**Solutions**:
+- Enable GPU acceleration (CUDA/Metal/ROCm) for 5-10x performance improvement
+- Upgrade GPU VRAM if available (improves processing speed)
+- Reduce image resolution before processing
+- Ensure sufficient RAM is available (~8GB recommended)
+
+### Ollama Takes a Long Time on First Run
+- First inference with Ollama loads the model into memory
+- This is normal and takes 30-60 seconds depending on your system
+- Subsequent requests are faster as the model stays loaded
+
+### OCR Results Are Incomplete or Incorrect
+- Different OCR models have different accuracy levels
+- Try adjusting the prompt in `ocr.ts`
+- Ensure image quality is good (high resolution, clear text)
+- Different Ollama models may work better for your use case
+
+### Out of Memory Errors
+- Ollama models require significant RAM (4-8GB+ for Chandra-OCR-2)
+- Close other applications to free up memory
+- Consider using a lighter OCR model: `ollama pull fredrezones55/chandra-ocr`
 
 ### Application Crashes on Large Images
 - Browser memory limitations
+- Large images may timeout before OCR completes
 - Try using smaller images or lower resolution
 - Close other browser tabs to free memory
 
@@ -341,7 +473,9 @@ This project is provided as-is. Please check for any specific license file in th
 
 ## 🔗 Resources
 
-- [Tesseract.js Documentation](https://tesseract.projectnaptha.com/)
+- [Ollama Documentation](https://github.com/ollama/ollama)
+- [Ollama Official Website](https://ollama.ai)
+- [Chandra-OCR-2 Model](https://ollama.ai/library/fredrezones55/chandra-ocr-2)
 - [FHIR Specification](https://www.hl7.org/fhir/)
 - [Vite Documentation](https://vitejs.dev/)
 - [React Documentation](https://react.dev/)

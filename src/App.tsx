@@ -95,9 +95,9 @@ export default function App() {
     try {
       setError(null);
 
-      // ── Step: OCR ──
+      // ── Step: OCR (Chandra-OCR-2) ──
       setStep('ocr');
-      setStatusMsg('Running OCR to extract text from image…');
+      setStatusMsg('Running Chandra-OCR-2 to extract text from image…');
       const ocrRes = await performOCR(imageSrc);
 
       // Reconstruct text with precise character tracking from OCR lines/words
